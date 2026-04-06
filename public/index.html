@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Digitales Wartungsbuch – Hächler-Reutlinger AG</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f5f5;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 0 0 40px;
+    }
+
+    .card {
+      background: #fff;
+      width: 100%;
+      max-width: 420px;
+      min-height: 100vh;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .header-icon {
+      width: 38px; height: 38px;
+      border-radius: 9px;
+      background: #2563eb;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .header-icon svg { width: 20px; height: 20px; fill: #fff; }
+    .header-title { font-size: 15px; font-weight: 600; color: #111; line-height: 1.2; }
+    .header-sub { font-size: 12px; color: #888; }
+
+    .banner { margin: 14px 14px 0; border-radius: 10px; padding: 12px 14px; }
+    .banner.konform { background: #eff6ff; border-left: 3px solid #2563eb; }
+    .banner.bald_faellig { background: #fffbeb; border-left: 3px solid #d97706; }
+    .banner-label { font-size: 10px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; margin-bottom: 3px; }
+    .banner.konform .banner-label { color: #1d4ed8; }
+    .banner.bald_faellig .banner-label { color: #b45309; }
+    .banner-date { font-size: 26px; font-weight: 700; line-height: 1.1; }
+    .banner.konform .banner-date { color: #1d4ed8; }
+    .banner.bald_faellig .banner-date { color: #d97706; }
+    .banner-detail { font-size: 12px; margin-top: 3px; }
+    .banner.konform .banner-detail { color: #2563eb; }
+    .banner.bald_faellig .banner-detail { color: #d97706; }
+
+    .device-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px 2px; }
+    .device-name { font-size: 14px; font-weight: 600; color: #111; }
+    .badge { font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 99px; }
+    .badge.konform { background: #dcfce7; color: #166534; }
+    .badge.bald_faellig { background: #fef3c7; color: #92400e; }
+    .device-loc { font-size: 12px; color: #888; padding: 0 14px 12px; }
+
+    .section-label { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #aaa; padding: 10px 14px 4px; }
+
+    .detail-row { display: flex; justify-content: space-between; padding: 3px 14px; font-size: 13px; }
+    .detail-key { color: #888; }
+    .detail-val { font-weight: 500; color: #111; }
+
+    .hist-item { display: flex; align-items: flex-start; gap: 10px; padding: 5px 14px; }
+    .hist-left { display: flex; flex-direction: column; align-items: center; padding-top: 4px; }
+    .hist-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .hist-dot.active { background: #2563eb; }
+    .hist-dot.inactive { background: #d1d5db; }
+    .hist-line { width: 1px; background: #e5e7eb; flex: 1; min-height: 20px; margin-top: 2px; }
+    .hist-date { font-size: 11px; color: #888; }
+    .hist-action { font-size: 13px; font-weight: 500; color: #111; margin: 1px 0; }
+    .hist-link { font-size: 12px; color: #2563eb; text-decoration: none; }
+    .hist-link:hover { text-decoration: underline; }
+
+    .divider { height: 1px; background: #f0f0f0; margin: 12px 14px 6px; }
+    .disclaimer { font-size: 11px; color: #aaa; padding: 4px 14px 14px; line-height: 1.5; }
+
+    .btn { display: block; margin: 6px 14px; padding: 13px; border: 1.5px solid #d1d5db; border-radius: 10px; text-align: center; font-size: 14px; font-weight: 600; color: #111; cursor: pointer; background: #fff; text-decoration: none; }
+    .btn:active { background: #f5f5f5; }
+    .btn-filter { display: block; margin: 6px 14px; padding: 13px; border: 1.5px solid #2563eb; border-radius: 10px; text-align: center; font-size: 14px; font-weight: 600; color: #2563eb; cursor: pointer; background: #eff6ff; }
+    .btn-filter:active { background: #dbeafe; }
+
+    .footer { text-align: center; font-size: 11px; color: #ccc; padding: 16px 14px 6px; }
+
+    /* Modal */
+    .modal-backdrop {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 100;
+      align-items: flex-end;
+      justify-content: center;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      background: #fff;
+      border-radius: 20px 20px 0 0;
+      width: 100%;
+      max-width: 420px;
+      padding: 20px 18px 32px;
+    }
+    .modal-handle { width: 36px; height: 4px; background: #e5e7eb; border-radius: 99px; margin: 0 auto 16px; }
+    .modal-title { font-size: 16px; font-weight: 700; color: #111; margin-bottom: 4px; }
+    .modal-sub { font-size: 13px; color: #6b7280; margin-bottom: 16px; line-height: 1.5; }
+    .modal-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 13px; border-bottom: 1px solid #f5f5f5; }
+    .modal-key { color: #6b7280; }
+    .modal-val { font-weight: 500; color: #111; }
+    .modal-next { background: #f0fdf4; border-radius: 10px; padding: 12px 14px; margin: 14px 0 18px; }
+    .modal-next-label { font-size: 11px; color: #4ade80; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 3px; }
+    .modal-next-date { font-size: 17px; font-weight: 700; color: #166534; }
+    .modal-next-detail { font-size: 12px; color: #4ade80; margin-top: 2px; }
+    .modal-btns { display: flex; gap: 10px; }
+    .modal-cancel { flex: 1; padding: 13px; border: 1.5px solid #e5e7eb; border-radius: 10px; font-size: 14px; font-weight: 600; color: #6b7280; background: #fff; cursor: pointer; text-align: center; }
+    .modal-confirm { flex: 1; padding: 13px; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; color: #fff; background: #2563eb; cursor: pointer; text-align: center; }
+    .modal-confirm:disabled { background: #93c5fd; cursor: not-allowed; }
+
+    /* Success toast */
+    .toast { display: none; position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #166534; color: #fff; padding: 12px 20px; border-radius: 10px; font-size: 13px; font-weight: 500; z-index: 200; white-space: nowrap; }
+    .toast.show { display: block; }
+
+    /* Loading & error */
+    .state-box { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; text-align: center; gap: 12px; }
+    .spinner { width: 32px; height: 32px; border: 3px solid #e5e7eb; border-top-color: #2563eb; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    .state-text { font-size: 14px; color: #888; }
+    .state-title { font-size: 16px; font-weight: 600; color: #111; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="header">
+    <div class="header-icon">
+      <svg viewBox="0 0 24 24"><path d="M4 4h16v2H4V4zm0 4h10v2H4V8zm0 4h16v2H4v-2zm0 4h10v2H4v-2z"/></svg>
+    </div>
+    <div>
+      <div class="header-title">Hächler-Reutlinger AG</div>
+      <div class="header-sub">Digitales Wartungsbuch</div>
+    </div>
+  </div>
+  <div id="content">
+    <div class="state-box">
+      <div class="spinner"></div>
+      <div class="state-text">Daten werden geladen…</div>
+    </div>
+  </div>
+</div>
+
+<!-- Bestätigungsdialog -->
+<div class="modal-backdrop" id="modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Filterwechsel bestätigen</div>
+    <div class="modal-sub">Folgender Eintrag wird in der Historie gespeichert.</div>
+    <div class="modal-row"><span class="modal-key">Datum</span><span class="modal-val" id="m-datum"></span></div>
+    <div class="modal-row"><span class="modal-key">Eintrag</span><span class="modal-val">Filterwechsel</span></div>
+    <div class="modal-row" style="border:none"><span class="modal-key">Gerät</span><span class="modal-val" id="m-geraet"></span></div>
+    <div class="modal-next">
+      <div class="modal-next-label">Nächster Filterwechsel</div>
+      <div class="modal-next-date" id="m-naechster"></div>
+      <div class="modal-next-detail" id="m-intervall"></div>
+    </div>
+    <div class="modal-btns">
+      <div class="modal-cancel" onclick="closeModal()">Abbrechen</div>
+      <button class="modal-confirm" id="btn-confirm" onclick="saveFilterwechsel()">Bestätigen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Success Toast -->
+<div class="toast" id="toast">Filterwechsel wurde gespeichert</div>
+
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const geraeteId = params.get('id');
+  let deviceData = null;
+
+  function render(data) {
+    deviceData = data;
+    const s = data.status;
+    const isKonform = s === 'konform';
+    const tageText = data.tageVerbleibend > 0
+      ? `Intervall: ${data.intervall} Jahre · In ${data.tageVerbleibend} Tagen`
+      : `Intervall: ${data.intervall} Jahre`;
+
+    const historieHTML = data.berichte.map((b, i) => {
+      const isFirst = i === 0;
+      const isLast  = i === data.berichte.length - 1;
+      const linkHTML = b.berichtUrl
+        ? `<a class="hist-link" href="${b.berichtUrl}" target="_blank">Bericht ansehen →</a>` : '';
+      return `
+        <div class="hist-item">
+          <div class="hist-left">
+            <div class="hist-dot ${isFirst ? 'active' : 'inactive'}"></div>
+            ${!isLast ? '<div class="hist-line"></div>' : ''}
+          </div>
+          <div>
+            <div class="hist-date">${b.datum}</div>
+            <div class="hist-action">${b.beschreibung}</div>
+            ${linkHTML}
+          </div>
+        </div>`;
+    }).join('');
+
+    document.getElementById('content').innerHTML = `
+      <div class="banner ${s}">
+        <div class="banner-label">Nächste Reinigung fällig</div>
+        <div class="banner-date">${data.naechsteFaelligkeit}</div>
+        <div class="banner-detail">${isKonform ? `Intervall: ${data.intervall} Jahre` : tageText}</div>
+      </div>
+      <div class="device-row">
+        <span class="device-name">${data.name}</span>
+        <span class="badge ${s}">${isKonform ? 'Konform' : 'Bald fällig'}</span>
+      </div>
+      <div class="device-loc">${data.standort}</div>
+      <div class="section-label">Gerätedetails</div>
+      <div class="detail-row"><span class="detail-key">Geräte-ID</span><span class="detail-val">${data.geraeteId}</span></div>
+      <div class="detail-row"><span class="detail-key">Kundenname</span><span class="detail-val">${data.kundenname}</span></div>
+      <div class="detail-row"><span class="detail-key">Standort</span><span class="detail-val">${data.standort}</span></div>
+      <div class="detail-row"><span class="detail-key">Techniker</span><span class="detail-val">${data.techniker}</span></div>
+      <div class="section-label" style="margin-top:8px">Reinigungshistorie</div>
+      ${historieHTML}
+      <div class="divider"></div>
+      <div class="disclaimer">Digitaler Nachweis gemäss SWKI-Richtlinien<br>für Behörden und Versicherungen.</div>
+      <div class="btn-filter" onclick="openModal()">Filterwechsel erfassen</div>
+      <a class="btn" href="mailto:info@haechler-reutlinger.ch?subject=Terminanfrage%20${encodeURIComponent(data.geraeteId)}">Termin anfragen</a>
+      <a class="btn" href="tel:+41441234567">+41 44 123 45 67 anrufen</a>
+      <div class="footer">Hächler-Reutlinger AG · Digitales Wartungsbuch</div>
+    `;
+  }
+
+  function renderError(msg) {
+    document.getElementById('content').innerHTML = `
+      <div class="state-box">
+        <div class="state-title">Gerät nicht gefunden</div>
+        <div class="state-text">${msg}</div>
+      </div>`;
+  }
+
+  function openModal() {
+    if (!deviceData) return;
+    const heute = new Date();
+    const opts  = { day: 'numeric', month: 'long', year: 'numeric' };
+    document.getElementById('m-datum').textContent    = heute.toLocaleDateString('de-CH', opts);
+    document.getElementById('m-geraet').textContent   = deviceData.geraeteId;
+    document.getElementById('m-naechster').textContent = deviceData.naechsterFilterwechsel;
+    document.getElementById('m-intervall').textContent = `Intervall: ${deviceData.filterwechselIntervall} Monate`;
+    document.getElementById('modal').classList.add('open');
+  }
+
+  function closeModal() {
+    document.getElementById('modal').classList.remove('open');
+  }
+
+  async function saveFilterwechsel() {
+    const btn = document.getElementById('btn-confirm');
+    btn.disabled = true;
+    btn.textContent = 'Wird gespeichert…';
+
+    try {
+      const res = await fetch('/api/filterwechsel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          geraeteId:              deviceData.geraeteId,
+          geraeteName:            deviceData.name,
+          standort:               deviceData.standort,
+          kundenname:             deviceData.kundenname,
+          intervall:              deviceData.intervall,
+          filterwechselIntervall: deviceData.filterwechselIntervall
+        })
+      });
+
+      const json = await res.json();
+      closeModal();
+
+      if (json.success) {
+        showToast();
+        setTimeout(() => loadData(), 1500);
+      } else {
+        alert('Fehler beim Speichern: ' + (json.error || 'Unbekannter Fehler'));
+      }
+    } catch (e) {
+      alert('Verbindungsfehler. Bitte erneut versuchen.');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Bestätigen';
+    }
+  }
+
+  function showToast() {
+    const t = document.getElementById('toast');
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  function loadData() {
+    fetch(`geraet.php?id=${encodeURIComponent(geraeteId)}`)
+      .then(r => r.json())
+      .then(data => { if (data.error) renderError(data.error); else render(data); })
+      .catch(() => renderError('Verbindungsfehler. Bitte später erneut versuchen.'));
+  }
+
+  if (!geraeteId) renderError('Kein Geräte-ID in der URL angegeben.');
+  else loadData();
+</script>
+</body>
+</html>
