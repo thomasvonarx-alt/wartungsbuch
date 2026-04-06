@@ -300,7 +300,7 @@
   }
 
   function loadData() {
-    fetch(`geraet.php?id=${encodeURIComponent(geraeteId)}`)
+    fetch(`/.netlify/functions/geraet?id=${encodeURIComponent(geraeteId)}`)
       .then(r => r.json())
       .then(data => { if (data.error) renderError(data.error); else render(data); })
       .catch(() => renderError('Verbindungsfehler. Bitte später erneut versuchen.'));
