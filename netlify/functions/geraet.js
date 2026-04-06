@@ -18,6 +18,15 @@ function getText(prop) {
   if (prop.select)    return prop.select?.name || '';
   return '';
 }
+function istLueftungsreinigung(r) {
+  const notiz = getText(r.properties['Notizen']).toLowerCase();
+  return notiz.includes('lüftungsreinigung') || notiz.includes('lueftungsreinigung') || notiz.includes('lüftungs');
+}
+function istFilterwechsel(r) {
+  const notiz = getText(r.properties['Notizen']).toLowerCase();
+  const typ   = getText(r.properties['Gerätetyp']).toLowerCase();
+  return notiz.includes('filter') || typ.includes('filter');
+}
 
 exports.handler = async (event) => {
   const headers = {
@@ -31,7 +40,6 @@ exports.handler = async (event) => {
   }
 
   try {
-    // Alle Einträge dieser Geräte-ID laden, nach Datum absteigend
     const alleEintraege = await notion.databases.query({
       database_id: process.env.NOTION_DATABASE_ID,
       filter: { property: 'Geräte-ID', title: { equals: geraeteId } },
@@ -42,59 +50,63 @@ exports.handler = async (event) => {
       return { statusCode: 404, headers, body: JSON.stringify({ error: 'Gerät nicht gefunden' }) };
     }
 
-    // Neuester Eintrag als Hauptdatenquelle
-    const row = alleEintraege.results[0];
-    const p   = row.properties;
+    // Gerätestammdaten aus dem neuesten Eintrag
+    const stamm = alleEintraege.results[0];
+    const p     = stamm.properties;
 
-    // Letzte Reinigung
-    const letzteReinigungRaw = p['Letzte Reinigung']?.date?.start;
-    const letzteReinigung    = letzteReinigungRaw ? new Date(letzteReinigungRaw) : new Date();
+    const heute = new Date();
 
-    // Nächste Fälligkeit direkt aus Notion
-    const naechsteFaelligkeitRaw = p['Nächste Fälligkeit']?.date?.start;
-    const naechsteReinigung      = naechsteFaelligkeitRaw
-      ? new Date(naechsteFaelligkeitRaw)
-      : new Date(letzteReinigung.getFullYear() + 3, letzteReinigung.getMonth(), letzteReinigung.getDate());
+    // --- LÜFTUNGSREINIGUNG ---
+    // Letzten Lüftungsreinigungseintrag suchen
+    const letzteReinigung = alleEintraege.results.find(r => istLueftungsreinigung(r));
 
-    // Wartungsintervall aus Text parsen (z.B. "2 Jahre" oder "3")
-    const intervallText  = getText(p['Wartungsintervall']);
-    const intervallJahre = parseInt(intervallText) || 3;
+    let naechsteReinigung;
+    let intervallJahre = 2; // Fallback
 
-    // Filterwechsel-Intervall aus Notion
+    if (letzteReinigung) {
+      const intervallText = getText(letzteReinigung.properties['Wartungsintervall']);
+      intervallJahre = parseInt(intervallText) || 2;
+      const letztesDatum = new Date(letzteReinigung.properties['Letzte Reinigung']?.date?.start);
+      naechsteReinigung = new Date(letztesDatum);
+      naechsteReinigung.setFullYear(naechsteReinigung.getFullYear() + intervallJahre);
+    } else {
+      // Fallback: direkt aus Notion-Feld Nächste Fälligkeit
+      const raw = p['Nächste Fälligkeit']?.date?.start;
+      naechsteReinigung = raw ? new Date(raw) : new Date(heute.getFullYear() + 2, heute.getMonth(), heute.getDate());
+      const intervallText = getText(p['Wartungsintervall']);
+      intervallJahre = parseInt(intervallText) || 2;
+    }
+
+    const tageVerbleibend = Math.floor((naechsteReinigung - heute) / (1000 * 60 * 60 * 24));
+
+    // Status für Reinigung: blau = konform, orange = bald fällig (<60 Tage), rot = überfällig
+    let reinigungsStatus;
+    if (tageVerbleibend < 0)         reinigungsStatus = 'ueberfaellig';
+    else if (tageVerbleibend <= 60)  reinigungsStatus = 'bald_faellig';
+    else                             reinigungsStatus = 'konform';
+
+    // --- FILTERWECHSEL ---
     const filterwechselIntervall = p['Filterwechsel-Intervall (Monate)']?.number || 6;
+    const letzterFilter = alleEintraege.results.find(r => istFilterwechsel(r));
 
-    const heute           = new Date();
-    const diffMs          = naechsteReinigung - heute;
-    const tageVerbleibend = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    const status          = p['Status']?.select?.name === 'Konform' ? 'konform' : 'bald_faellig';
-
-    // Letzten Filterwechsel-Eintrag finden
-    const letzterFilterEintrag = alleEintraege.results.find(r => {
-      const notiz = getText(r.properties['Notizen']).toLowerCase();
-      const typ   = getText(r.properties['Gerätetyp']).toLowerCase();
-      return notiz.includes('filter') || typ.includes('filter');
-    });
-
-    // Nächsten Filterwechsel berechnen: letzter Filterwechsel + Intervall
     let naechsterFilterwechsel;
-    if (letzterFilterEintrag) {
-      const letzterDatumRaw = letzterFilterEintrag.properties['Letzte Reinigung']?.date?.start;
-      const letzterDatum    = letzterDatumRaw ? new Date(letzterDatumRaw) : heute;
-      naechsterFilterwechsel = new Date(letzterDatum);
+    if (letzterFilter) {
+      const letztesDatum = new Date(letzterFilter.properties['Letzte Reinigung']?.date?.start);
+      naechsterFilterwechsel = new Date(letztesDatum);
       naechsterFilterwechsel.setMonth(naechsterFilterwechsel.getMonth() + filterwechselIntervall);
     } else {
       naechsterFilterwechsel = new Date(heute);
       naechsterFilterwechsel.setMonth(naechsterFilterwechsel.getMonth() + filterwechselIntervall);
     }
 
-    // Servicehistorie aufbereiten
+    // --- SERVICEHISTORIE ---
     const berichte = alleEintraege.results.map(r => {
       const rp      = r.properties;
       const dateRaw = rp['Letzte Reinigung']?.date?.start;
       const datum   = dateRaw ? formatDatum(new Date(dateRaw)) : '';
       const files   = rp['Bericht-URL']?.files || [];
       const url     = files[0]?.file?.url || files[0]?.external?.url || null;
-      const notizen = getText(rp['Notizen']) || getText(rp['Gerätetyp']) || 'Serviceeinsatz';
+      const notizen = getText(rp['Notizen']) || 'Serviceeinsatz';
       return { datum, beschreibung: notizen, berichtUrl: url };
     });
 
@@ -110,10 +122,11 @@ exports.handler = async (event) => {
         intervall:                   intervallJahre,
         filterwechselIntervall,
         naechsteFaelligkeit:         formatMonat(naechsteReinigung),
+        naechsteFaelligkeitDatum:    naechsteReinigung.toISOString(),
         naechsterFilterwechsel:      formatMonat(naechsterFilterwechsel),
         naechsterFilterwechselDatum: naechsterFilterwechsel.toISOString(),
         tageVerbleibend,
-        status,
+        status:                      reinigungsStatus,
         berichte
       })
     };
