@@ -108,7 +108,7 @@
       border-radius: 20px 20px 0 0;
       width: 100%;
       max-width: 420px;
-      padding: 20px 18px 32px;
+      padding: 24px 20px 40px;
     }
     .modal-handle { width: 36px; height: 4px; background: #e5e7eb; border-radius: 99px; margin: 0 auto 16px; }
     .modal-title { font-size: 16px; font-weight: 700; color: #111; margin-bottom: 4px; }
@@ -261,9 +261,16 @@
     if (!deviceData) return;
     const heute = new Date();
     const opts  = { day: 'numeric', month: 'long', year: 'numeric' };
+
+    // Nächster Filterwechsel = heute + Intervall (ab diesem Wechsel gerechnet)
+    const naechster = new Date(heute);
+    naechster.setMonth(naechster.getMonth() + deviceData.filterwechselIntervall);
+    const monate = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+    const naechsterText = monate[naechster.getMonth()] + ' ' + naechster.getFullYear();
+
     document.getElementById('m-datum').textContent    = heute.toLocaleDateString('de-CH', opts);
     document.getElementById('m-geraet').textContent   = deviceData.geraeteId;
-    document.getElementById('m-naechster').textContent = deviceData.naechsterFilterwechsel;
+    document.getElementById('m-naechster').textContent = naechsterText;
     document.getElementById('m-intervall').textContent = `Intervall: ${deviceData.filterwechselIntervall} Monate`;
     document.getElementById('modal').classList.add('open');
   }
