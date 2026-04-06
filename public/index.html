@@ -188,6 +188,14 @@
       ? `Intervall: ${data.intervall} Jahre · In ${data.tageVerbleibend} Tagen`
       : `Intervall: ${data.intervall} Jahre`;
 
+    const heute2 = new Date();
+    const filterDatum = new Date(data.naechsterFilterwechselDatum || Date.now() + 999 * 86400000);
+    const filterTage = Math.floor((filterDatum - heute2) / (1000 * 60 * 60 * 24));
+    let filterFarbe, filterSymbol;
+    if (filterTage < 0)        { filterFarbe = '#dc2626'; filterSymbol = ' !'; }
+    else if (filterTage <= 30) { filterFarbe = '#d97706'; filterSymbol = ' ⚠'; }
+    else                       { filterFarbe = '#16a34a'; filterSymbol = ''; }
+
     const historieHTML = data.berichte.map((b, i) => {
       const isFirst = i === 0;
       const isLast  = i === data.berichte.length - 1;
@@ -221,7 +229,7 @@
       <div class="section-label">Gerätedetails</div>
       <div class="detail-row"><span class="detail-key">Geräte-ID</span><span class="detail-val">${data.geraeteId}</span></div>
       <div class="detail-row"><span class="detail-key">Kundenname</span><span class="detail-val">${data.kundenname}</span></div>
-      <div class="detail-row"><span class="detail-key">Standort</span><span class="detail-val">${data.standort}</span></div>
+      <div class="detail-row"><span class="detail-key">Nächster Filterwechsel</span><span style="font-weight:500;color:${filterFarbe}">${data.naechsterFilterwechsel}${filterSymbol}</span></div>
       <div class="detail-row"><span class="detail-key">Techniker</span><span class="detail-val">${data.techniker}</span></div>
       <div class="section-label" style="margin-top:8px">Reinigungshistorie</div>
       ${historieHTML}
