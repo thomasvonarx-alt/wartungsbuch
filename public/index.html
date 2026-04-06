@@ -263,7 +263,7 @@
     btn.textContent = 'Wird gespeichert…';
 
     try {
-      const res = await fetch('/api/filterwechsel', {
+      const res = await fetch('/.netlify/functions/filterwechsel', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
