@@ -18,7 +18,7 @@ exports.handler = async (event) => {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'Ungültiges JSON' }) };
   }
 
-  const { geraeteId, standort, kundenname, techniker, filterwechselIntervall } = body;
+  const { geraeteId, geraeteName, standort, kundenname, techniker, filterwechselIntervall } = body;
   if (!geraeteId) return { statusCode: 400, headers, body: JSON.stringify({ error: 'Geräte-ID fehlt' }) };
 
   const heute = new Date().toISOString().split('T')[0];
