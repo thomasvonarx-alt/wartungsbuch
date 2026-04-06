@@ -104,6 +104,7 @@ exports.handler = async (event) => {
         filterwechselIntervall,
         naechsteFaelligkeit:     formatMonat(naechsteReinigung),
         naechsterFilterwechsel:  formatMonat(naechsterFilterwechsel),
+        naechsterFilterwechselDatum: naechsterFilterwechsel.toISOString(),
         tageVerbleibend,
         status,
         berichte
