@@ -30,7 +30,7 @@ exports.handler = async (event) => {
       parent: { database_id: process.env.NOTION_DATABASE_ID },
       properties: {
         'Geräte-ID':   { title: [{ text: { content: geraeteId } }] },
-        'Gerätetyp':   { rich_text: [{ text: { content: 'Filterwechsel' } }] },
+        'Gerätetyp':   { rich_text: [{ text: { content: geraeteName || '' } }] },
         'Notizen':     { rich_text: [{ text: { content: 'Filterwechsel durch Kunde erfasst' } }] },
         'Standort':    { rich_text: [{ text: { content: standort || '' } }] },
         'Kundenname':  { rich_text: [{ text: { content: kundenname || '' } }] },
